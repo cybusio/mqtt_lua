@@ -101,7 +101,7 @@ OpenWRT Installation
 - Install Penlight : cp -R Penlight-master/lua/pl /usr/lib/lua/
 - Download mqtt_lua : wget --no-check-certificate https://github.com/thunderace/mqtt_lua/archive/master.zip
 - Unzip mqtt_lua : unzip master.zip
-- Install mqtt_lua : cp mqtt_lua-master/lua/*.lua /usr/lib/lua/
+- Install mqtt_lua : cp -R mqtt_lua-master/lua/* /usr/lib/lua/
 
 
 <a name="installation" />

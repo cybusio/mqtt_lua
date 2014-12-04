@@ -84,7 +84,7 @@ local MQTT = {}
 ---
 -- @field [parent = #mqtt_library] utility#utility Utility
 --
-MQTT.Utility = require "utility"
+MQTT.Utility = require "mqtt.utility"
 
 ---
 -- @field [parent = #mqtt_library] #number VERSION
