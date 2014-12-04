@@ -488,7 +488,9 @@ function MQTT.client:message_write(                             -- Internal API
 -- bit    0:        Retain        = 0
 
   local message = string.char(MQTT.Utility.shift_left(message_type, 4))
-  message = message + MQTT.Utility.shift_left(retain, 0)
+  if (retain) then
+    message = message + MQTT.Utility.shift_left(retain, 0)
+  end
   if (payload == nil) then
     message = message .. string.char(0)  -- Zero length, no payload
   else
