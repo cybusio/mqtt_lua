@@ -66,9 +66,9 @@ Protocol implementation and restrictions
 ----------------------------------------
 - Always assumes MQTT connection "clean session" enabled.
 - Supports connection last will and testament message.
-- Fixed message header byte 1, only implements the "message type".
+- Fixed message header byte 1, only implements the "message type" and retain flag.
 - Only supports QOS (Quality Of Service) level 0.
-- Maximum payload length is 268,435,455 bytes (easily increased).
+- Maximum payload length is 268,435,455 bytes.
 - Publish message doesn't support "message identifier".
 - Subscribe acknowledgement messages don't check granted QOS level.
 - Outstanding subscribe acknowledgement messages aren't escalated.
@@ -81,14 +81,12 @@ Download
 The Lua MQTT client library is cross-platform and should work on any
 platform that supports the Lua programming language and network sockets.
 
-- [Download Lua MQTT client library](https://github.com/geekscape/mqtt_lua/archives/master)
-
 <a name="feedback" />
 Feedback and issues
 -------------------
 Tracking is managed via GitHub ...
 
-- [Enhancements requests and issue tracking](https://github.com/geekscape/mqtt_lua/issues)
+- [Enhancements requests and issue tracking](https://github.com/thunderace/mqtt_lua/issues)
 
 <a name="OpenWRTinstallation" />
 OpenWRT Installation
@@ -323,10 +321,11 @@ Transmit an MQTT disconnect message to the server.
 
 Transmit a message on a specified topic.
 
-      mqtt_client:publish(topic, payload)
+      mqtt_client:publish(topic, payload, retain)
 
       topic   -- string: Topic for the published message
       payload -- string: Message data
+      retain  -- byte:   Message retention status
 
 #### MQTT.client:subscribe(): Transmit MQTT Subscribe message
 
