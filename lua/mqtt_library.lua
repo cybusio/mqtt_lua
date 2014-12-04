@@ -1,24 +1,27 @@
--- mqtt_library.lua
+---
+-- @module mqtt_library
 -- ~~~~~~~~~~~~~~~~
--- Please do not remove the following notices.
--- Copyright (c) 2011-2012 by Geekscape Pty. Ltd.
--- License: AGPLv3 http://geekscape.org/static/aiko_license.html
--- Version: 0.2 2012-06-01
+-- Version: 0.3 2014-10-06
+-- -------------------------------------------------------------------------- --
+-- Copyright (c) 2011-2012 Geekscape Pty. Ltd.
+-- All rights reserved. This program and the accompanying materials
+-- are made available under the terms of the Eclipse Public License v1.0
+-- which accompanies this distribution, and is available at
+-- http://www.eclipse.org/legal/epl-v10.html
+--
+-- Contributors:
+--    Andy Gelme    - Initial API and implementation
+--    Kevin KIN-FOO - Authentication and rockspec
+-- -------------------------------------------------------------------------- --
 --
 -- Documentation
 -- ~~~~~~~~~~~~~
--- MQTT Lua web-site
---   http://geekscape.github.com/mqtt_lua
---
--- MQTT Lua repository notes
---   https://github.com/geekscape/mqtt_lua/blob/master/readme.markdown
---
--- Aiko Platform web-site
---   https://sites.google.com/site/aikoplatform
+-- Paho MQTT Lua website
+--   http://eclipse.org/paho/
 --
 -- References
 -- ~~~~~~~~~~
--- MQTT web-site
+-- MQTT Community
 --   http://mqtt.org
 
 -- MQTT protocol specification 3.1
@@ -29,7 +32,6 @@
 -- ~~~~~
 -- - Always assumes MQTT connection "clean session" enabled.
 -- - Supports connection last will and testament message.
--- - Does not support connection username and password.
 -- - Fixed message header byte 1, only implements the "message type".
 -- - Only supports QOS level 0.
 -- - Maximum payload length is 268,435,455 bytes (as per specification).
@@ -79,23 +81,56 @@ end
 
 local MQTT = {}
 
-MQTT.Utility = require("utility")
+---
+-- @field [parent = #mqtt_library] utility#utility Utility
+--
+MQTT.Utility = require "utility"
 
+---
+-- @field [parent = #mqtt_library] #number VERSION
+--
 MQTT.VERSION = 0x03
 
+---
+-- @field [parent = #mqtt_library] #boolean ERROR_TERMINATE
+--
 MQTT.ERROR_TERMINATE = false      -- Message handler errors terminate process ?
 
-MQTT.DEFAULT_BROKER_HOSTNAME = "localhost"
+---
+-- @field [parent = #mqtt_library] #string DEFAULT_BROKER_HOSTNAME
+--
+MQTT.DEFAULT_BROKER_HOSTNAME = "m2m.eclipse.org"
 
+---
+-- An MQTT client
+-- @type client
+
+---
+-- @field [parent = #mqtt_library] #client client
+--
 MQTT.client = {}
 MQTT.client.__index = MQTT.client
 
+---
+-- @field [parent = #client] #number DEFAULT_PORT
+--
 MQTT.client.DEFAULT_PORT       = 1883
-MQTT.client.KEEP_ALIVE_TIME    = 60 -- seconds (maximum is 65535)
+
+---
+-- @field [parent = #client] #number KEEP_ALIVE_TIME
+--
+MQTT.client.KEEP_ALIVE_TIME    =   60  -- seconds (maximum is 65535)
+
+---
+-- @field [parent = #client] #number MAX_PAYLOAD_LENGTH
+--
 MQTT.client.MAX_PAYLOAD_LENGTH = 268435455 -- bytes
 
 -- MQTT 3.1 Specification: Section 2.1: Fixed header, Message type
 
+---
+-- @field [parent = #mqtt_library] message
+--
 MQTT.message = {}
 MQTT.message.TYPE_RESERVED    = 0x00
 MQTT.message.TYPE_CONNECT     = 0x01
@@ -131,6 +166,14 @@ MQTT.CONACK.error_message = {          -- CONACK return code used as the index
 -- Create an MQTT client instance
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+---
+-- Create an MQTT client instance.
+-- @param #string hostname Host name or address of the MQTT broker
+-- @param #number port Port number of the MQTT broker (default: 1883)
+-- @param #function callback Invoked when subscribed topic messages received
+-- @function [parent = #client] create
+-- @return #client created client
+--
 function MQTT.client.create(                                      -- Public API
   hostname,  -- string:   Host name or address of the MQTT broker
   port,      -- integer:  Port number of the MQTT broker (default: 1883)
@@ -155,11 +198,34 @@ function MQTT.client.create(                                      -- Public API
   return(mqtt_client)
 end
 
--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
--- Transmit MQTT Client request a connection to an MQTT broker (server)
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
--- MQTT 3.1 Specification: Section 3.1: CONNECT
+--------------------------------------------------------------------------------
+-- Specify username and password before #client.connect
+--
+-- If called with empty _username_ or _password_, connection flags will be set
+-- but no string will be appended to payload.
+--
+-- @function [parent = #client] auth
+-- @param self
+-- @param #string username Name of the user who is connecting. It is recommended
+--                         that user names are kept to 12 characters.
+-- @param #string password Password corresponding to the user who is connecting.
+function MQTT.client.auth(self, username, password)
+  -- When no string is provided, remember current call to set flags
+  self.username = username or true
+  self.password = password or true
+end
 
+--------------------------------------------------------------------------------
+-- Transmit MQTT Client request a connection to an MQTT broker (server).
+-- MQTT 3.1 Specification: Section 3.1: CONNECT
+-- @param self
+-- @param #string identifier MQTT client identifier (maximum 23 characters)
+-- @param #string will_topic Last will and testament topic
+-- @param #string will_qos Last will and testament Quality Of Service
+-- @param #string will_retain Last will and testament retention status
+-- @param #string will_message Last will and testament message
+-- @function [parent = #client] connect
+--
 function MQTT.client:connect(                                     -- Public API
   identifier,    -- string: MQTT client identifier (maximum 23 characters)
   will_topic,    -- string: Last will and testament topic
@@ -200,14 +266,20 @@ function MQTT.client:connect(                                     -- Public API
 -- bit    1: Clean session =  1
 -- bit    0: Unused        =  0
 
+  local username = self.username and 0x80 or 0
+  local password = self.password and 0x40 or 0
+  local flags    = username + password
+
   if (will_topic == nil) then
-    payload = payload .. string.char(0x02)       -- Clean session, no last will
+    -- Clean session, no last will
+    flags = flags + 0x02
   else
-    local flags
-    flags = MQTT.Utility.shift_left(will_retain, 5)
-    flags = flags + MQTT.Utility.shift_left(will_qos, 3) + 0x06
-    payload = payload .. string.char(flags)
+    flags = flags + MQTT.Utility.shift_left(will_retain, 5)
+    flags = flags + MQTT.Utility.shift_left(will_qos, 3)
+    -- Last will and clean session
+    flags = flags + 0x04 + 0x02
   end
+  payload = payload .. string.char(flags)
 
 -- Keep alive timer (bytes 11 LSB and 12 MSB, unit is seconds)
 -- ~~~~~~~~~~~~~~~~~
@@ -225,15 +297,25 @@ function MQTT.client:connect(                                     -- Public API
     payload = payload .. MQTT.client.encode_utf8(will_message)
   end
 
+  -- Username and password
+  -- ~~~~~~~~~~~~~~~~~~~~~
+  if type(self.username) == 'string' then
+    payload = payload .. MQTT.client.encode_utf8(self.username)
+  end
+  if type(self.password) == 'string' then
+    payload = payload .. MQTT.client.encode_utf8(self.password)
+  end
+
 -- Send MQTT message
 -- ~~~~~~~~~~~~~~~~~
   return(self:message_write(MQTT.message.TYPE_CONNECT, payload))
 end
 
--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
--- Destroy an MQTT client instance
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+-- Destroy an MQTT client instance.
+-- @param self
+-- @function [parent = #client] destroy
+--
 function MQTT.client:destroy()                                    -- Public API
   MQTT.Utility.debug("MQTT.client:destroy()")
 
@@ -247,13 +329,13 @@ function MQTT.client:destroy()                                    -- Public API
   end
 end
 
--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
--- Transmit MQTT Disconnect message
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+-- Transmit MQTT Disconnect message.
 -- MQTT 3.1 Specification: Section 3.14: Disconnect notification
---
 -- bytes 1,2: Fixed message header, see MQTT.client:message_write()
-
+-- @param self
+-- @function [parent = #client] disconnect
+--
 function MQTT.client:disconnect()                                 -- Public API
   MQTT.Utility.debug("MQTT.client:disconnect()")
 
@@ -286,13 +368,14 @@ function MQTT.client.encode_utf8(                               -- Internal API
   return(output)
 end
 
--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
--- Handle received messages and maintain keep-alive PING messages
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+-- Handle received messages and maintain keep-alive PING messages.
 -- This function must be invoked periodically (more often than the
--- MQTT.client.KEEP_ALIVE_TIME) which maintains the connection and
--- services the incoming subscribed topic messages.
-
+-- `MQTT.client.KEEP_ALIVE_TIME`) which maintains the connection and
+-- services the incoming subscribed topic messages
+-- @param self
+-- @function [parent = #client] handler
+--
 function MQTT.client:handler()                                    -- Public API
   if (self.connected == false) then
     error("MQTT.client:handler(): Not connected")
@@ -574,7 +657,7 @@ function MQTT.client:parse_message_publish(                     -- Internal API
 -- Handle optional Message Identifier, for QOS levels 1 and 2
 -- TODO: Enable Subscribe with QOS and deal with PUBACK, etc.
 
-    local qos = MQTT.Utility.shift_left(message_type_flags, 1) % 3
+    local qos = MQTT.Utility.shift_right(message_type_flags, 1) % 3
 
     if (qos > 0) then
       local message_id = string.byte(message, index) * 256
@@ -678,16 +761,19 @@ function MQTT.client:ping_response()                            -- Internal API
   self:message_write(MQTT.message.TYPE_PINGRESP, nil)
 end
 
--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
--- Transmit MQTT Publish message
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+-- Transmit MQTT Publish message.
 -- MQTT 3.1 Specification: Section 3.3: Publish message
 --
--- bytes 1,2: Fixed message header, see MQTT.client:message_write()
--- Variable header ..
--- bytes 3- : Topic name and optional Message Identifier (if QOS > 0)
--- bytes m- : Payload
-
+-- * bytes 1,2: Fixed message header, see MQTT.client:message_write()
+--            Variable header ..
+-- * bytes 3- : Topic name and optional Message Identifier (if QOS > 0)
+-- * bytes m- : Payload
+-- @param self
+-- @param #string topic
+-- @param #string payload
+-- @function [parent = #client] publish
+--
 function MQTT.client:publish(                                     -- Public API
   topic,    -- string
   payload)  -- string
@@ -703,16 +789,18 @@ function MQTT.client:publish(                                     -- Public API
   self:message_write(MQTT.message.TYPE_PUBLISH, message)
 end
 
--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
--- Transmit MQTT Subscribe message
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+-- Transmit MQTT Subscribe message.
 -- MQTT 3.1 Specification: Section 3.8: Subscribe to named topics
 --
--- bytes 1,2: Fixed message header, see MQTT.client:message_write()
--- Variable header ..
--- bytes 3,4: Message Identifier
--- bytes 5- : List of topic names and their QOS level
-
+-- * bytes 1,2: Fixed message header, see MQTT.client:message_write()
+--            Variable header ..
+-- * bytes 3,4: Message Identifier
+-- * bytes 5- : List of topic names and their QOS level
+-- @param self
+-- @param #string topics table of strings
+-- @function [parent = #client] subscribe
+--
 function MQTT.client:subscribe(                                   -- Public API
   topics)  -- table of strings
 
@@ -737,17 +825,18 @@ function MQTT.client:subscribe(                                   -- Public API
   self.outstanding[self.message_id] = { "subscribe", topics }
 end
 
--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
 -- Transmit MQTT Unsubscribe message
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 -- MQTT 3.1 Specification: Section 3.10: Unsubscribe from named topics
 --
--- bytes 1,2: Fixed message header, see MQTT.client:message_write()
--- Variable header ..
--- bytes 3,4: Message Identifier
--- bytes 5- : List of topic names
-
-
+-- * bytes 1,2: Fixed message header, see MQTT.client:message_write()
+--            Variable header ..
+-- * bytes 3,4: Message Identifier
+-- * bytes 5- : List of topic names
+-- @param self
+-- @param #string topics table of strings
+-- @function [parent = #client] unsubscribe
+--
 function MQTT.client:unsubscribe(                                 -- Public API
   topics)  -- table of strings
 
@@ -771,6 +860,6 @@ function MQTT.client:unsubscribe(                                 -- Public API
   self.outstanding[self.message_id] = { "unsubscribe", topics }
 end
 
--- For ... MQTT = require("mqtt_library")
+-- For ... MQTT = require 'mqtt_library'
 
 return(MQTT)
