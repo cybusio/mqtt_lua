@@ -1,8 +1,8 @@
 package = "mqtt"
-version = "0.0-0"
+version = "0.3-0"
 
 source = {
-  url = "http://github.com/downloads/geekscape/mqtt_lua/mqtt_lua-0.0.tar.gz"
+  url = "http://github.com/downloads/thunderace/mqtt_lua/mqtt_lua-0.0.tar.gz"
 }
 
 description = {
@@ -16,7 +16,7 @@ description = {
 
   homepage = "https://geekscape.github.com/mqtt_lua",
   license = "AGPLv3 or commercial",
-  maintainer = "Andy Gelme (@geekscape)"
+  maintainer = "thunderace"
 }
 
 dependencies = {
@@ -29,10 +29,10 @@ build = {
 
   modules = {
     lapp           = "lua/lapp.lua",
-    mqtt_library   = "lua/mqtt_library.lua",
-    mqtt_publish   = "lua/example/mqtt_publish.lua",
-    mqtt_subscribe = "lua/example/mqtt_subscribe.lua",
-    mqtt_test      = "lua/example/mqtt_test.lua",
-    utility        = "lua/utility.lua"
+    mqtt_library   = "lua/mqtt.lua",
+    mqtt_publish   = "lua/mqtt/example/mqtt_publish.lua",
+    mqtt_subscribe = "lua/mqtt/example/mqtt_subscribe.lua",
+    mqtt_test      = "lua/mqtt/example/mqtt_test.lua",
+    utility        = "lua/mqtt/utility.lua"
   }
 }
