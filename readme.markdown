@@ -159,7 +159,7 @@ subscribes to the topic "test/2".  The command exits when the message
 
 This command publishes a single message and then exits.
 
-      example/mqtt_publish -d -t test/1 -m "Test message"
+      example/mqtt_publish -d -t test/1 -m "Test message" -r 1
 
 Only the _--topic_ and _--message_ parameters are required.
 
@@ -169,6 +169,7 @@ Only the _--topic_ and _--message_ parameters are required.
       -m,--message      (string)               Message to be published
       -p,--port         (default 1883)         MQTT server port number
       -t,--topic        (string)               Topic on which to publish
+      -r,--retain       (default 0)            Message retention         
       -w,--will_message                        Last will and testament message
       -w,--will_qos     (default 0)            Last will and testament QOS
       -w,--will_retain  (default 0)            Last will and testament retention
