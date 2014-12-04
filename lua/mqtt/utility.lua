@@ -1,7 +1,7 @@
 ---
 -- @module Utility
 -- ~~~~~~~~~~~
--- Version: 0.3 2014-10-06
+-- Version: 0.3-1 2014-12-04
 -- -------------------------------------------------------------------------- --
 -- Copyright (c) 2011-2012 Geekscape Pty. Ltd.
 -- All rights reserved. This program and the accompanying materials

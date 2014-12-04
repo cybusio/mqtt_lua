@@ -1,8 +1,8 @@
 package = "mqtt"
-version = "0.3-0"
+version = "0.3-1"
 
 source = {
-  url = "http://github.com/downloads/thunderace/mqtt_lua/mqtt_lua-0.0.tar.gz"
+  url = "git://github.com/thunderace/mqtt_lua.git"
 }
 
 description = {
@@ -28,7 +28,6 @@ build = {
   type = "builtin",
 
   modules = {
-    lapp           = "lua/lapp.lua",
     mqtt_library   = "lua/mqtt.lua",
     mqtt_publish   = "lua/mqtt/examples/mqtt_publish.lua",
     mqtt_subscribe = "lua/mqtt/examples/mqtt_subscribe.lua",
