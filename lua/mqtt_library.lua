@@ -474,14 +474,21 @@ end
 -- bytes m- : Optional variable header and payload
 
 function MQTT.client:message_write(                             -- Internal API
-  message_type,  -- enumeration
-  payload)       -- string
-                 -- return: nil or error message
+  message_type, -- enumeration
+  payload,      -- string
+  retain)       -- byte:   payload retention status
+                -- return: nil or error message
 
 -- TODO: Complete implementation of fixed header byte 1
+-- Fixed header
+-- ~~~~~~~~~~~~~
+-- bit    7,6,5,4:  Message type  = 0011
+-- bits   3:        DUP flag      = 0
+-- bit    2,1:      QoS level     = 00
+-- bit    0:        Retain        = 0
 
   local message = string.char(MQTT.Utility.shift_left(message_type, 4))
-
+  message = message + MQTT.Utility.shift_left(retain, 0)
   if (payload == nil) then
     message = message .. string.char(0)  -- Zero length, no payload
   else
@@ -776,7 +783,8 @@ end
 --
 function MQTT.client:publish(                                     -- Public API
   topic,    -- string
-  payload)  -- string
+  payload,  -- string
+  retain)   -- byte:   payload retention status
 
   if (self.connected == false) then
     error("MQTT.client:publish(): Not connected")
@@ -786,7 +794,7 @@ function MQTT.client:publish(                                     -- Public API
 
   local message = MQTT.client.encode_utf8(topic) .. payload
 
-  self:message_write(MQTT.message.TYPE_PUBLISH, message)
+  self:message_write(MQTT.message.TYPE_PUBLISH, message, retain)
 end
 
 --- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
