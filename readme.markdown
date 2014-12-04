@@ -66,10 +66,9 @@ Protocol implementation and restrictions
 ----------------------------------------
 - Always assumes MQTT connection "clean session" enabled.
 - Supports connection last will and testament message.
-- Does not support connection username and password.
 - Fixed message header byte 1, only implements the "message type".
 - Only supports QOS (Quality Of Service) level 0.
-- Maximum payload length is 127 bytes (easily increased).
+- Maximum payload length is 268,435,455 bytes (easily increased).
 - Publish message doesn't support "message identifier".
 - Subscribe acknowledgement messages don't check granted QOS level.
 - Outstanding subscribe acknowledgement messages aren't escalated.
@@ -90,6 +89,20 @@ Feedback and issues
 Tracking is managed via GitHub ...
 
 - [Enhancements requests and issue tracking](https://github.com/geekscape/mqtt_lua/issues)
+
+<a name="OpenWRTinstallation" />
+OpenWRT Installation
+------------
+- As root
+- Install lua : opkg install lua
+- Install luaSocket : opkg install luasocket
+- Download PenLight : wget --no-check-certificate https://github.com/stevedonovan/Penlight/archive/master.zip(https://github.com/stevedonovan/Penlight)
+- Unzip Penlight : unzip master.zip
+- Install Penlight : cp -R Penlight-master/lua/pl /usr/lib/lua/
+- Download mqtt_lua : wget --no-check-certificate https://github.com/thunderace/mqtt_lua/archive/master.zip
+- Unzip mqtt_lua : unzip master.zip
+- Install mqtt_lua : cp mqtt_lua-master/lua/*.lua /usr/lib/lua/
+
 
 <a name="installation" />
 Installation
