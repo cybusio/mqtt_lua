@@ -94,7 +94,7 @@ OpenWRT Installation
 - As root
 - Install lua : opkg install lua
 - Install luaSocket : opkg install luasocket
-- Download PenLight : wget --no-check-certificate https://github.com/stevedonovan/Penlight/archive/master.zip(https://github.com/stevedonovan/Penlight)
+- Download PenLight : wget --no-check-certificate https://github.com/stevedonovan/Penlight/archive/master.zip
 - Unzip Penlight : unzip master.zip
 - Install Penlight : cp -R Penlight-master/lua/pl /usr/lib/lua/
 - Download mqtt_lua : wget --no-check-certificate https://github.com/thunderace/mqtt_lua/archive/master.zip
